@@ -5,54 +5,43 @@ import { z } from "zod";
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
 	server = new McpServer({
-		name: "Authless Calculator",
+		name: "Time Agent",
+		description: "An agent that provides the current time for a given timezone.",
 		version: "1.0.0",
 	});
 
 	async init() {
-		// Simple addition tool
+		// Tool: getTime - Query the local time for a given timezone
 		this.server.tool(
-			"add",
-			{ a: z.number(), b: z.number() },
-			async ({ a, b }) => ({
-				content: [{ type: "text", text: String(a + b) }],
-			})
-		);
-
-		// Calculator tool with multiple operations
-		this.server.tool(
-			"calculate",
-			{
-				operation: z.enum(["add", "subtract", "multiply", "divide"]),
-				a: z.number(),
-				b: z.number(),
-			},
-			async ({ operation, a, b }) => {
-				let result: number;
-				switch (operation) {
-					case "add":
-						result = a + b;
-						break;
-					case "subtract":
-						result = a - b;
-						break;
-					case "multiply":
-						result = a * b;
-						break;
-					case "divide":
-						if (b === 0)
-							return {
-								content: [
-									{
-										type: "text",
-										text: "Error: Cannot divide by zero",
-									},
-								],
-							};
-						result = a / b;
-						break;
+			"getTime",
+			{ timezone: z.string() },
+			async ({ timezone }) => {
+				try {
+					// Use Intl.DateTimeFormat to get the local time for the specified timezone
+					const now = new Date();
+					const formatter = new Intl.DateTimeFormat("en-US", {
+						timeZone: timezone,
+						year: "numeric",
+						month: "2-digit",
+						day: "2-digit",
+						hour: "2-digit",
+						minute: "2-digit",
+						second: "2-digit",
+						hour12: false,
+					});
+					const formatted = formatter.format(now);
+					return {
+						content: [
+							{ type: "text", text: `Current time in ${timezone}: ${formatted}` },
+						],
+					};
+				} catch (e) {
+					return {
+						content: [
+							{ type: "text", text: `Invalid timezone: ${timezone}` },
+						],
+					};
 				}
-				return { content: [{ type: "text", text: String(result) }] };
 			}
 		);
 	}
